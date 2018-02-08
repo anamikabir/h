@@ -45,11 +45,38 @@ class ListGroupsService(object):
         default), filtered by scope as per ``document_uri``.
         """
 
-    def private_groups(self, user):
+    def private_groups(self, user=None):
         """Return this user's private groups per user.groups."""
 
+        if user is None:
+            return []
+        return [self._group_model(p_group) for p_group in user.groups]
+
     def _group_model(self, group):
-        """Return dict representing group for API use."""
+        """
+        Return dict representing group for API use.
+
+        Take a Group and return a formatted dict for API consumption.
+
+        :param group: Group model for formatting
+        """
+
+        model = {
+          'name': group.name,
+          'id': group.pubid,
+          'public': group.is_public,
+          'scoped': False,  # TODO
+          'type': 'open' if group.is_public else 'private',  # TODO
+          'urls': {}
+        }
+        if not group.is_public:
+            # `url` legacy property support
+            model['url'] = self._route_url('group_read',
+                                           pubid=group.pubid,
+                                           slug=group.slug)
+            # `urls` are the future
+            model['urls']['group'] = model['url']
+        return model
 
 
 def list_groups_factory(context, request):
