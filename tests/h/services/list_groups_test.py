@@ -43,6 +43,19 @@ class TestListGroupsAllGroups(object):
         assert group_ids == auth_group_ids
         assert another_authority_open_group.pubid not in group_ids
 
+    def test_groups_are_sorted(self, list_groups_service, factories):
+        user = factories.User(authority='z.com')
+        user.groups = [factories.Group(name='alpha', pubid='zzzz', authority='z.com'),
+                       factories.Group(name='alpha', pubid='aaaa', authority='z.com'),
+                       factories.Group(name='aardvark', pubid='zoinks', authority='z.com')]
+        factories.OpenGroup(name='alpha', pubid='zaza', authority='z.com')
+        factories.OpenGroup(name='alpha', pubid='azaz', authority='z.com')
+
+        groups = list_groups_service.all_groups(user=user)
+
+        # open groups first
+        assert [group['id'] for group in groups] == ['azaz', 'zaza', 'zoinks', 'aaaa', 'zzzz']
+
     @pytest.fixture
     def open_groups(self, factories):
         return [factories.OpenGroup(), factories.OpenGroup()]
@@ -88,6 +101,16 @@ class TestListGroupsPrivateGroups(object):
 
         assert groups == []
 
+    def test_groups_are_sorted(self, list_groups_service, factories):
+        user = factories.User(authority='z.com')
+        user.groups = [factories.Group(name='alpha', pubid='zzzz', authority='z.com'),
+                       factories.Group(name='alpha', pubid='aaaa', authority='z.com'),
+                       factories.Group(name='aardvark', pubid='zoinks', authority='z.com')]
+
+        groups = list_groups_service.private_groups(user=user)
+
+        assert [group['id'] for group in groups] == ['zoinks', 'aaaa', 'zzzz']
+
 
 class TestListGroupsOpenGroups(object):
 
@@ -123,6 +146,15 @@ class TestListGroupsOpenGroups(object):
         o_groups = list_groups_service.open_groups(user=user, authority='foo.com')
 
         assert o_groups == []
+
+    def test_groups_are_sorted(self, list_groups_service, factories):
+        factories.OpenGroup(name='alpha', pubid='zzzz', authority='z.com')
+        factories.OpenGroup(name='alpha', pubid='aaaa', authority='z.com')
+        factories.OpenGroup(name='aardvark', pubid='zoinks', authority='z.com')
+
+        groups = list_groups_service.open_groups(authority='z.com')
+
+        assert [group['id'] for group in groups] == ['zoinks', 'aaaa', 'zzzz']
 
 
 @pytest.fixture

@@ -29,9 +29,6 @@ class ListGroupsService(object):
         self._route_url = route_url
         self._request_authority = request_authority
 
-    def _sort(self, groups):
-        """Sort a list of groups."""
-
     def _authority(self, user=None, authority=None):
         """Determine which authority to use.
 
@@ -70,14 +67,14 @@ class ListGroupsService(object):
                       .filter_by(authority=authority,
                                  readable_by=group.ReadableBy.world)
                       .all())
-        return [self._group_model(o_group) for o_group in groups]
+        return self._format(groups)
 
     def private_groups(self, user=None):
         """Return this user's private groups per user.groups."""
 
         if user is None:
             return []
-        return [self._group_model(p_group) for p_group in user.groups]
+        return self._format(user.groups)
 
     def _group_model(self, group):
         """
@@ -104,6 +101,14 @@ class ListGroupsService(object):
             # `urls` are the future
             model['urls']['group'] = model['url']
         return model
+
+    def _format(self, groups):
+        """Sort and format groups into ordered lists of dicts"""
+        return [self._group_model(group) for group in self._sort(groups)]
+
+    def _sort(self, groups):
+        """ sort a list of groups of a single type """
+        return sorted(groups, key=lambda group: (group.name.lower(), group.pubid))
 
 
 def list_groups_factory(context, request):
