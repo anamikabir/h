@@ -2,6 +2,9 @@
 
 from __future__ import unicode_literals
 
+from h import models
+from h.models import group
+
 
 class ListGroupsService(object):
 
@@ -44,6 +47,13 @@ class ListGroupsService(object):
         Return matching open groups for the authority (or request_authority
         default), filtered by scope as per ``document_uri``.
         """
+        authority = authority or self._request_authority
+        # TODO This is going to change once scopes and model updates in place
+        groups = (self._session.query(models.Group)
+                      .filter_by(authority=authority,
+                                 readable_by=group.ReadableBy.world)
+                      .all())
+        return [self._group_model(o_group) for o_group in groups]
 
     def private_groups(self, user=None):
         """Return this user's private groups per user.groups."""

@@ -49,6 +49,31 @@ class TestListGroupsPrivateGroups(object):
         assert groups == []
 
 
+class TestListGroupsOpenGroups(object):
+
+    def test_returns_all_open_groups_for_authority(self, list_groups_service, factories):
+        o_groups = [factories.OpenGroup(authority='foo.com'),
+                    factories.OpenGroup(authority='foo.com')]
+        o_group_names = {o_group.name for o_group in o_groups}
+
+        groups = list_groups_service.open_groups(authority='foo.com')
+
+        assert {group['name'] for group in groups} == o_group_names
+
+    def test_no_groups_from_mismatched_authority(self, list_groups_service, factories):
+        factories.OpenGroup(authority='foo.com')
+        factories.OpenGroup(authority='foo.com')
+
+        groups = list_groups_service.open_groups(authority='bar.com')
+
+        assert groups == []
+
+    def test_returns_groups_from_default_authority(self, list_groups_service):
+        groups = list_groups_service.open_groups()
+
+        assert groups[0]['id'] == '__world__'
+
+
 @pytest.fixture
 def pyramid_request(pyramid_request):
     pyramid_request.route_url = mock.Mock(return_value='/group/a')
