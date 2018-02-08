@@ -51,18 +51,14 @@ class TestListGroupsPrivateGroups(object):
 
 class TestListGroupsOpenGroups(object):
 
-    def test_returns_all_open_groups_for_authority(self, list_groups_service, factories):
-        o_groups = [factories.OpenGroup(authority='foo.com'),
-                    factories.OpenGroup(authority='foo.com')]
-        o_group_names = {o_group.name for o_group in o_groups}
+    def test_returns_authority_open_groups(self, list_groups_service, authority_open_groups):
+        o_group_names = {o_group.name for o_group in authority_open_groups}
 
         groups = list_groups_service.open_groups(authority='foo.com')
 
         assert {group['name'] for group in groups} == o_group_names
 
-    def test_no_groups_from_mismatched_authority(self, list_groups_service, factories):
-        factories.OpenGroup(authority='foo.com')
-        factories.OpenGroup(authority='foo.com')
+    def test_no_groups_from_mismatched_authority(self, list_groups_service, authority_open_groups):
 
         groups = list_groups_service.open_groups(authority='bar.com')
 
@@ -72,6 +68,26 @@ class TestListGroupsOpenGroups(object):
         groups = list_groups_service.open_groups()
 
         assert groups[0]['id'] == '__world__'
+
+    def test_returns_groups_for_user_authority(self, list_groups_service, authority_open_groups, factories):
+        user = factories.User(authority='foo.com')
+        o_group_names = {o_group.name for o_group in authority_open_groups}
+
+        o_groups = list_groups_service.open_groups(user=user)
+
+        assert {group['name'] for group in o_groups} == o_group_names
+
+    def test_ignores_authority_if_user(self, list_groups_service, authority_open_groups, factories):
+        user = factories.User(authority='somethingelse.com')
+
+        o_groups = list_groups_service.open_groups(user=user, authority='foo.com')
+
+        assert o_groups == []
+
+    @pytest.fixture
+    def authority_open_groups(self, factories):
+        return [factories.OpenGroup(authority='foo.com'),
+                factories.OpenGroup(authority='foo.com')]
 
 
 @pytest.fixture

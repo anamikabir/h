@@ -32,6 +32,18 @@ class ListGroupsService(object):
     def _sort(self, groups):
         """Sort a list of groups."""
 
+    def _authority(self, user=None, authority=None):
+        """Determine which authority to use.
+
+           Determine the appropriate authority to use for querying groups.
+           User's authority will always supersede if present; otherwise provide
+           default value—request.authority—if no authority specified.
+        """
+
+        if user is not None:
+            return user.authority
+        return authority or self._request_authority
+
     def all_groups(self, user=None, authority=None, document_uri=None):
         """
         Return a list of groups relevant to this session/profile (i.e. user).
@@ -40,14 +52,15 @@ class ListGroupsService(object):
         Include all types of relevant groups (open and private).
         """
 
-    def open_groups(self, authority=None, document_uri=None):
+    def open_groups(self, user=None, authority=None, document_uri=None):
         """
         Return all matching open groups for the authority and target URI.
 
         Return matching open groups for the authority (or request_authority
         default), filtered by scope as per ``document_uri``.
         """
-        authority = authority or self._request_authority
+
+        authority = self._authority(user, authority)
         # TODO This is going to change once scopes and model updates in place
         groups = (self._session.query(models.Group)
                       .filter_by(authority=authority,
