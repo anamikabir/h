@@ -8,6 +8,46 @@ import pytest
 from h.services.list_groups import ListGroupsService
 
 
+class TestListGroupsAllGroups(object):
+
+    def test_returns_open_groups_when_no_user(self, list_groups_service, open_groups):
+        open_group_ids = {group.pubid for group in open_groups}
+        open_group_ids.add('__world__')
+
+        groups = list_groups_service.all_groups()
+
+        assert {group['id'] for group in groups} == open_group_ids
+        for group in groups:
+            assert group['type'] == 'open'
+
+    def test_returns_all_group_types_when_user(self, list_groups_service, factories):
+        user = factories.User()
+        user.groups = [factories.Group(), factories.Group()]
+        expected_ids = [group.pubid for group in user.groups]
+        expected_ids.append('__world__')
+
+        groups = list_groups_service.all_groups(user=user)
+
+        group_ids = [group['id'] for group in groups]
+        for expected_id in expected_ids:
+            assert expected_id in group_ids
+
+    def test_ignores_authority_when_user_present(self, list_groups_service, factories, authority_open_groups):
+        user = factories.User(authority='foo.com')
+        another_authority_open_group = factories.OpenGroup(authority='somewhere-else.com')
+        auth_group_ids = {group.pubid for group in authority_open_groups}
+
+        groups = list_groups_service.all_groups(user=user, authority='somewhere-else.com')
+
+        group_ids = {group['id'] for group in groups}
+        assert group_ids == auth_group_ids
+        assert another_authority_open_group.pubid not in group_ids
+
+    @pytest.fixture
+    def open_groups(self, factories):
+        return [factories.OpenGroup(), factories.OpenGroup()]
+
+
 class TestListGroupsPrivateGroups(object):
 
     @pytest.mark.parametrize('attribute', [
@@ -84,10 +124,11 @@ class TestListGroupsOpenGroups(object):
 
         assert o_groups == []
 
-    @pytest.fixture
-    def authority_open_groups(self, factories):
-        return [factories.OpenGroup(authority='foo.com'),
-                factories.OpenGroup(authority='foo.com')]
+
+@pytest.fixture
+def authority_open_groups(factories):
+    return [factories.OpenGroup(authority='foo.com'),
+            factories.OpenGroup(authority='foo.com')]
 
 
 @pytest.fixture

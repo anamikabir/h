@@ -51,6 +51,10 @@ class ListGroupsService(object):
         Return a list of groups filtered on user, authority, document_uri.
         Include all types of relevant groups (open and private).
         """
+        open_groups = self.open_groups(user, authority, document_uri)
+        private_groups = self.private_groups(user)
+
+        return open_groups + private_groups
 
     def open_groups(self, user=None, authority=None, document_uri=None):
         """
